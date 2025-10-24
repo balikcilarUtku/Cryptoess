@@ -38,13 +38,13 @@ conn_str = (
 cn = pyodbc.connect(conn_str)
 cur = cn.cursor()
 
-row = cur.execute("SELECT asset_id FROM dbo.Assets WHERE symbol = ?", DB_SYMBOL).fetchone()
+row = cur.execute("SELECT assetID FROM dbo.Assets WHERE symbol = ?", DB_SYMBOL).fetchone()
 if not row:
     cur.execute("INSERT INTO dbo.Assets (symbol, name) VALUES (?,?)", (DB_SYMBOL, "Shiba Inu (USD)"))
     cn.commit()
-    row = cur.execute("SELECT asset_id FROM dbo.Assets WHERE symbol = ?", DB_SYMBOL).fetchone()
+    row = cur.execute("SELECT assetID FROM dbo.Assets WHERE symbol = ?", DB_SYMBOL).fetchone()
 
-asset_id = row[0]
+assetID = row[0]
 
 def toNativeUtc(dt):
     if dt.tzinfo is not None:
@@ -54,7 +54,7 @@ def toNativeUtc(dt):
 records = []
 for rec in df.itertuples(index=False):
     records.append((
-        asset_id,
+        assetID,
         INTERVAL,
         toNativeUtc(rec.openTime),
         float(rec.open),
@@ -66,13 +66,13 @@ for rec in df.itertuples(index=False):
     
 sql_merge = """
 MERGE dbo.OHLC AS t
-USING (VALUES (?, ?, ?, ?, ?, ?, ?, ?)) AS v(asset_id, [interval], ts_utc, [open], [high], [low], [close], volume)
-ON t.asset_id=v.asset_id AND t.[interval]=v.[interval] AND t.ts_utc=v.ts_utc
+USING (VALUES (?, ?, ?, ?, ?, ?, ?, ?)) AS v(assetID, [interval], ts_utc, [open], [high], [low], [close], volume)
+ON t.assetID=v.assetID AND t.[interval]=v.[interval] AND t.ts_utc=v.ts_utc
 WHEN MATCHED THEN
     UPDATE SET t.[open]=v.[open], t.[high]=v.[high], t.[low]=v.[low], t.[close]=v.[close], t.volume=v.volume
 WHEN NOT MATCHED THEN
-    INSERT (asset_id, [interval], ts_utc, [open], [high], [low], [close], volume)
-    VALUES (v.asset_id, v.[interval], v.ts_utc, v.[open], v.[high], v.[low], v.[close], v.volume);
+    INSERT (assetID, [interval], ts_utc, [open], [high], [low], [close], volume)
+    VALUES (v.assetID, v.[interval], v.ts_utc, v.[open], v.[high], v.[low], v.[close], v.volume);
 """
 
 cur.fast_executemany = True
@@ -82,9 +82,9 @@ cn.commit()
 check = cur.execute("""
 SELECT TOP 5 ts_utc, [open], [high], [low], [close], volume
 FROM dbo.OHLC
-WHERE asset_id = ? AND [interval] = ?
+WHERE assetID = ? AND [interval] = ?
 ORDER BY ts_utc DESC
-""", (asset_id, INTERVAL)).fetchall()
+""", (assetID, INTERVAL)).fetchall()
 
 print("Son 5 Kayıt : ")
 for r in check:
